@@ -30,3 +30,4 @@ $ snakemake -np 		#this invokes the dry run
 
 $ snakemake -c <number of cores> -j <number of parallel jobs to run>
 
+Same workflow can be executed interactively the commands are mentioned in Linear_pipeline_commands.txt
