@@ -13,7 +13,7 @@ wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.fasta.fai
 wget https://ftp.ncbi.nlm.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/GATK/00-All.vcf.gz
 wget https://ftp.ncbi.nlm.nih.gov/snp/organisms/human_9606_b151_GRCh38p7/VCF/GATK/00-All.vcf.gz.tbi
-cd 
+
 
 : << 'COMMENT'
 
