@@ -1,25 +1,25 @@
 #### Made by IITM Genome India Team
 
-SAMPLES, = glob_wildcards("/root/docker/samples/{sample}.fastq.gz")  #Defining global Wild cards
+SAMPLES, = glob_wildcards("samples/{sample}.fastq.gz")  #Defining global Wild cards
 
 # a pseudo-rule that collects the target files so the code executes in one go taking all the samples inside the data/samples/ directory
 rule all:
-    input:  expand("/root/docker/QC/multiqc"),
-            expand("/root/docker/snps_filtered/all.snps_filtered.vcf", sample=SAMPLES),
-            expand("/root/docker/indels_filtered/all.indels_filtered.vcf", sample=SAMPLES),
+    input:  expand("QC/multiqc"),
+            expand("snps_filtered/all.snps_filtered.vcf", sample=SAMPLES),
+            expand("indels_filtered/all.indels_filtered.vcf", sample=SAMPLES),
 
 #FASTQC analysis for raw reads
 rule FastQC:
-    input: "/root/docker/samples/{sample}.fastq.gz"
+    input: "samples/{sample}.fastq.gz"
     output:
-        "/root/docker/QC/fastqc/{sample}_fastqc.html",   #output is stored in a directory QC/fastqc
-        "/root/docker/QC/fastqc/{sample}_fastqc.zip"
+        "QC/fastqc/{sample}_fastqc.html",   #output is stored in a directory QC/fastqc
+        "QC/fastqc/{sample}_fastqc.zip"
     priority: 600                           #highest priority so the rule executes before any other
     threads: 2
     benchmark:
-        "/root/docker/benchmarks/{sample}.FastQC.benchmark.txt"
+        "benchmarks/{sample}.FastQC.benchmark.txt"
     log: 
-	    "/root/docker/logs/{sample}.FastQC.log"
+	    "logs/{sample}.FastQC.log"
     shell:
         "echo $(date '+%d/%m/%y    %H:%M:%S'): 'FastQC starts' >> {log} && echo '-' >> {log} &&"                 # Add start time to log file
         "fastqc -o QC/fastqc {input} "
@@ -28,14 +28,14 @@ rule FastQC:
         " && echo '-' >> {log}"                                                                                      # Add end time to log file
 
 rule MultiQC:                               #multiqc takes the output of fastqc and compiles them into one html file|| This is preferable if multiple samples are to be processed
-    input: expand("/root/docker/QC/fastqc/{sample}_fastqc.html", sample = SAMPLES)
-    output: directory("/root/docker/QC/multiqc")         #output in seperate directory QC/multiqc
+    input: expand("QC/fastqc/{sample}_fastqc.html", sample = SAMPLES)
+    output: directory("QC/multiqc")         #output in seperate directory QC/multiqc
     priority: 500
     threads: 10
     benchmark:
-        "/root/docker/benchmarks/MultiQC.benchmark.txt"
+        "benchmarks/MultiQC.benchmark.txt"
     log: 
-	    "/root/docker/logs/Multiqc.log"    
+	    "logs/Multiqc.log"    
     shell:  
         "echo $(date '+%d/%m/%y    %H:%M:%S'): 'MultiQC starts' >> {log} && echo '-' >> {log} &&"
         "multiqc -o QC/multiqc QC/fastqc "
@@ -49,13 +49,13 @@ rule MultiQC:                               #multiqc takes the output of fastqc 
 '''
 rule CutAdapt:                               #adapter trimming for interleaved fastq files
     input:
-        "/root/docker/samples/{sample}.fastq"
+        "samples/{sample}.fastq"
     output:
-        "/root/docker/adapter_trimmed/{sample}.fastq"
+        "adapter_trimmed/{sample}.fastq"
     benchmark: 
-        "/root/docker/benchmarks/CutAdapt.txt"
+        "benchmarks/CutAdapt.txt"
     log:
-        "/root/docker/logs/CutAdapt.txt"
+        "logs/CutAdapt.txt"
     params:
         forward= "ACGT",
 	rev= "TCGA",
@@ -73,16 +73,16 @@ rule CutAdapt:                               #adapter trimming for interleaved f
 
 rule bwa_map:                               #BWA maps the raw reads to the reference genome
     input:
-        "/root/docker/data/Homo_sapiens_assembly38.fasta",
-        "/root/docker/samples/{sample}.fastq.gz"               #Path to cutadapt file should be given 
+        "data/Homo_sapiens_assembly38.fasta",
+        "samples/{sample}.fastq.gz"               #Path to cutadapt file should be given 
     output:
-        "/root/docker/mapped_reads/{sample}.bam"
+        "mapped_reads/{sample}.bam"
     priority: 400                          #priority lower than fastqc so it executes after QC step when executed in one go.
     threads: 15
     log: 
-	    "/root/docker/logs/{sample}.bwa_map.log"
+	    "logs/{sample}.bwa_map.log"
     benchmark:
-        "/root/docker/benchmarks/{sample}.bwa_map.benchmark.txt"
+        "benchmarks/{sample}.bwa_map.benchmark.txt"
     shell:
         "echo $(date '+%d/%m/%y    %H:%M:%S'): 'bwa_map starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
         "bwa mem -M -p -t {threads} {input} | samtools view -b -h -@ {threads}  > {output} "
@@ -93,14 +93,14 @@ rule bwa_map:                               #BWA maps the raw reads to the refer
 
 rule AddOrReplaceReadGroups:                            #picard suggested by GATK to avoid error down the line for picard MarkDuplicates
      input:
-         "/root/docker/mapped_reads/{sample}.bam"
+         "mapped_reads/{sample}.bam"
      output:
-          "/root/docker/picard_rg/{sample}.bam"
+          "picard_rg/{sample}.bam"
      threads: 5
      benchmark:
-         "/root/docker/benchmarks/{sample}.AddOrReplaceReadGroups.benchmark.txt"
+         "benchmarks/{sample}.AddOrReplaceReadGroups.benchmark.txt"
      log: 
-         "/root/docker/logs/{sample}.AddOrReplaceReadGroups.log"
+         "logs/{sample}.AddOrReplaceReadGroups.log"
      shell:
           "echo $(date '+%d/%m/%y    %H:%M:%S'): 'AddOrReplaceReadGroups starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
           "picard AddOrReplaceReadGroups I={input} O={output} RGID=1 RGLB=lib2 RGPL=ILLUMINA RGPU=unit1 RGSM={wildcards.sample} "
@@ -112,14 +112,14 @@ rule AddOrReplaceReadGroups:                            #picard suggested by GAT
 
 rule SortSam:                          #picard_sort will do the sorting of each sample || Parameters as suggested by GATK >> VALIDATION_STRINGENCY=LENIENT SORT_ORDER=coordinate MAX_RECORDS_IN_RAM=3000000 CREATE_INDEX=True.
     input:
-        "/root/docker/picard_rg/{sample}.bam"
+        "picard_rg/{sample}.bam"
     output:
-        "/root/docker/picard_sort/{sample}.sort.bam"
+        "picard_sort/{sample}.sort.bam"
     threads: 5
     benchmark:
-        "/root/docker/benchmarks/{sample}.SortSam.benchmark.txt"    
+        "benchmarks/{sample}.SortSam.benchmark.txt"    
     log: 
-        "/root/docker/logs/{sample}.SortSam.log"
+        "logs/{sample}.SortSam.log"
     shell:
         "echo $(date '+%d/%m/%y    %H:%M:%S'): 'SortSam starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
         "picard -Xmx13g SortSam I={input} O={output} VALIDATION_STRINGENCY=LENIENT SORT_ORDER=coordinate MAX_RECORDS_IN_RAM=3000000 CREATE_INDEX=True "
@@ -131,15 +131,15 @@ rule SortSam:                          #picard_sort will do the sorting of each 
 
 rule MarkDuplicates:                       #Picard MarkDuplicates to remove duplicate reads
     input:
-        "/root/docker/picard_sort/{sample}.sort.bam"
+        "picard_sort/{sample}.sort.bam"
     output:
-        bam= "/root/docker/picard_markdups/{sample}.sort.dup.bam",
-        met= "/root/docker/metrics/{sample}_marked_dup_metrics.txt"
+        bam= "picard_markdups/{sample}.sort.dup.bam",
+        met= "metrics/{sample}_marked_dup_metrics.txt"
     threads: 5
     benchmark:
-        "/root/docker/benchmarks/{sample}.MarkDuplicates.benchmark.txt"
+        "benchmarks/{sample}.MarkDuplicates.benchmark.txt"
     log: 
-    	"/root/docker/logs/{sample}.MarkDuplicates.log"
+    	"logs/{sample}.MarkDuplicates.log"
     shell:
         "echo $(date '+%d/%m/%y    %H:%M:%S'): 'MarkDuplicates starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
         "picard -Xmx13g MarkDuplicates I={input} O={output.bam} METRICS_FILE={output.met} "
@@ -150,15 +150,15 @@ rule MarkDuplicates:                       #Picard MarkDuplicates to remove dupl
 
 rule BaseRecalibrator:                     #BaseRecalibrator step musy include a --known sites parameter taking the dbsnp input
      input:
-         bam= "/root/docker/picard_markdups/{sample}.sort.dup.bam",
-         fa= "/root/docker/data/Homo_sapiens_assembly38.fasta",
-         dbsnp= "/root/docker/data/00-All.vcf.gz"
+         bam= "picard_markdups/{sample}.sort.dup.bam",
+         fa= "data/Homo_sapiens_assembly38.fasta",
+         dbsnp= "data/00-All.vcf.gz"
      output:
-         "/root/docker/base_reclabritor/{sample}_recal_data.table"
+         "base_reclabritor/{sample}_recal_data.table"
      threads: 5
-     log: "/root/docker/logs/{sample}.BaseRecalibrator.log"
+     log: "logs/{sample}.BaseRecalibrator.log"
      benchmark:
-          "/root/docker/benchmarks/{sample}.BaseRecalibrator.benchmark.txt"
+          "benchmarks/{sample}.BaseRecalibrator.benchmark.txt"
      shell:
           "echo $(date '+%d/%m/%y    %H:%M:%S'): 'MarkDuplicates starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
           "gatk --java-options -Xmx13g BaseRecalibrator -I {input.bam} -R {input.fa} --known-sites {input.dbsnp} -O {output} "
@@ -169,15 +169,15 @@ rule BaseRecalibrator:                     #BaseRecalibrator step musy include a
 
 rule ApplyBQSR:                            #ApplyBQSR takes multiple inputs || genome.fa (reference genome) || bam generated from previous step|| output of BaseRecalibrator file
        input:
-           bam= "/root/docker/picard_markdups/{sample}.sort.dup.bam",
-           fa= "/root/docker/data/Homo_sapiens_assembly38.fasta",
-           recal= "/root/docker/base_reclabritor/{sample}_recal_data.table"
+           bam= "picard_markdups/{sample}.sort.dup.bam",
+           fa= "data/Homo_sapiens_assembly38.fasta",
+           recal= "base_reclabritor/{sample}_recal_data.table"
        output:
-            "/root/docker/bqsr/{sample}.sort.dup.bqsr.gatk.bam"
+            "bqsr/{sample}.sort.dup.bqsr.gatk.bam"
        threads: 5
-       log: "/root/docker/logs/{sample}.ApplyBQSR.log"
+       log: "logs/{sample}.ApplyBQSR.log"
        benchmark:
-            "/root/docker/benchmarks/{sample}.ApplyBQSR.benchmark.txt"
+            "benchmarks/{sample}.ApplyBQSR.benchmark.txt"
        shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'ApplyBQSR starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g ApplyBQSR -I {input.bam} -R {input.fa} --bqsr-recal-file {input.recal} -O {output} "
@@ -189,15 +189,15 @@ rule ApplyBQSR:                            #ApplyBQSR takes multiple inputs || g
 
 rule HaplotypeCaller:                       #haplotypecaller will call for varients requires reference genome file along with output of previous step.
        input:
-           gatk= "/root/docker/bqsr/{sample}.sort.dup.bqsr.gatk.bam",
-           fa= "/root/docker/data/Homo_sapiens_assembly38.fasta"
+           gatk= "bqsr/{sample}.sort.dup.bqsr.gatk.bam",
+           fa= "data/Homo_sapiens_assembly38.fasta"
        output:
-            "/root/docker/gvcf/{sample}.g.vcf.gz"
+            "gvcf/{sample}.g.vcf.gz"
        priority: 300
        threads: 5
-       log: "/root/docker/logs/{sample}.HaplotypeCaller.log"
+       log: "logs/{sample}.HaplotypeCaller.log"
        benchmark:
-            "/root/docker/benchmarks/{sample}.HaplotypeCaller.benchmark.txt"
+            "benchmarks/{sample}.HaplotypeCaller.benchmark.txt"
        shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'HaplotypeCaller starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g HaplotypeCaller -I {input.gatk} -R {input.fa} -ERC GVCF -O {output} "
@@ -207,18 +207,18 @@ rule HaplotypeCaller:                       #haplotypecaller will call for varie
 
 rule gatk_CombineGVCFs:                                                 #Combining the vcfs generetaed seperatly for each sample into one
     input:
-        vcf_dummy = expand("/root/docker/gvcf/{sample}.g.vcf.gz", sample = SAMPLES), # a dummy vcf to connect this rule to gatk_HaplotypeCaller
-        fa = "/root/docker/data/Homo_sapiens_assembly38.fasta",
+        vcf_dummy = expand("gvcf/{sample}.g.vcf.gz", sample = SAMPLES), # a dummy vcf to connect this rule to gatk_HaplotypeCaller
+        fa = "data/Homo_sapiens_assembly38.fasta",
 
     output:
-        gvcf = "/root/docker/gvcf_combined/all.g.vcf.gz",
+        gvcf = "gvcf_combined/all.g.vcf.gz",
     params:
-        list = "/root/docker/gvcfs.list"
+        list = "gvcfs.list"
     priority: 200
     benchmark:
-         "/root/docker/benchmarks/CombineGVCFs.benchmark.txt"
+         "benchmarks/CombineGVCFs.benchmark.txt"
     threads:15
-    log: "/root/docker/logs/CombineGVCFs.log"
+    log: "logs/CombineGVCFs.log"
     shell:
          "echo $(date '+%d/%m/%y    %H:%M:%S'): 'CombineGVCFs starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
          "ls gvcf/*.gz >gvcfs.list && gatk --java-options -Xmx13g CombineGVCFs -R {input.fa} --variant {params.list} -O {output.gvcf} "   #Two bash comands running sequentially to avoid empty gvcf.list
@@ -230,15 +230,15 @@ rule gatk_CombineGVCFs:                                                 #Combini
 
 rule GenotypeGVCFs:                         #GenotypeGVCFs convert the gVCF to VCF.
        input:
-            fa = "/root/docker/data/Homo_sapiens_assembly38.fasta",
-            gvcf= "/root/docker/gvcf_combined/all.g.vcf.gz"
+            fa = "data/Homo_sapiens_assembly38.fasta",
+            gvcf= "gvcf_combined/all.g.vcf.gz"
        output:
-            "/root/docker/vcf/all.vcf.gz"
+            "vcf/all.vcf.gz"
        threads: 15
        priority: 100
-       log: "/root/docker/logs/GenotypeGVCFs.log"
+       log: "logs/GenotypeGVCFs.log"
        benchmark:
-            "/root/docker/benchmarks/GenotypeGVCF.benchmark.txt"
+            "benchmarks/GenotypeGVCF.benchmark.txt"
        shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'GenotypeGVCFs starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g GenotypeGVCFs -R {input.fa} -V {input.gvcf} -O {output} "
@@ -250,14 +250,14 @@ rule GenotypeGVCFs:                         #GenotypeGVCFs convert the gVCF to V
 
 rule LeftAlignAndTrimVariants:              #LeftAlignAndTrimVariants
         input:
-            fa= "/root/docker/data/Homo_sapiens_assembly38.fasta",
-            vcf= "/root/docker/vcf/all.vcf.gz"
+            fa= "data/Homo_sapiens_assembly38.fasta",
+            vcf= "vcf/all.vcf.gz"
         output:
-            "/root/docker/trim_vcf/all.trim.vcf"
+            "trim_vcf/all.trim.vcf"
         threads: 15
-        log: "/root/docker/logs/LeftAlignAndTrimVariants.log"
+        log: "logs/LeftAlignAndTrimVariants.log"
         benchmark:
-             "/root/docker/benchmarks/LeftAlignAndTrimVariants.benchmark.txt"
+             "benchmarks/LeftAlignAndTrimVariants.benchmark.txt"
         shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'LeftAlignAndTrimVariants starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g LeftAlignAndTrimVariants -R {input.fa} -V {input.vcf} -O {output} --split-multi-allelics "
@@ -268,13 +268,13 @@ rule LeftAlignAndTrimVariants:              #LeftAlignAndTrimVariants
 
 rule SelectVariants_SNPS:                   #Selects SNPS only
         input:
-            "/root/docker/trim_vcf/all.trim.vcf"
+            "trim_vcf/all.trim.vcf"
         output:
-            "/root/docker/snps/all.vcf"
+            "snps/all.vcf"
         threads: 15
-        log: "/root/docker/logs/SelectVariants_SNPS.log"
+        log: "logs/SelectVariants_SNPS.log"
         benchmark:
-            "/root/docker/benchmarks/SelectVariants_SNPS.benchmark.txt"
+            "benchmarks/SelectVariants_SNPS.benchmark.txt"
         shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'SelectVariants_SNPS starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g SelectVariants -V {input} -select-type SNP -O {output} "
@@ -285,13 +285,13 @@ rule SelectVariants_SNPS:                   #Selects SNPS only
 
 rule SelectVariants_INDELS:                  #Selects indels only
         input:
-            "/root/docker/trim_vcf/all.trim.vcf"
+            "trim_vcf/all.trim.vcf"
         output:
-            "/root/docker/indels/all.vcf"
+            "indels/all.vcf"
         threads: 15
-        log: "/root/docker/logs/SelectVariants_INDELS.log"
+        log: "logs/SelectVariants_INDELS.log"
         benchmark:
-            "/root/docker/benchmarks/SelectVariants_INDELS.benchmark.txt"
+            "benchmarks/SelectVariants_INDELS.benchmark.txt"
         shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'SelectVariants_INDELS starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g SelectVariants -V {input} -select-type INDEL -O {output} "
@@ -302,9 +302,9 @@ rule SelectVariants_INDELS:                  #Selects indels only
 
 rule VariantFiltration_SNP:                            #Hard filtering snps as per the GATK pipeline with their suggested parameters
         input:
-            "/root/docker/snps/all.vcf"
+            "snps/all.vcf"
         output:
-            "/root/docker/snps_filtered/all.snps_filtered.vcf"
+            "snps_filtered/all.snps_filtered.vcf"
         params:
             flt= """-filter "QD < 2.0" --filter-name "QD2" \
                     -filter "QUAL < 30.0" --filter-name "QUAL30" \
@@ -314,9 +314,9 @@ rule VariantFiltration_SNP:                            #Hard filtering snps as p
                     -filter "MQRankSum < -12.5" --filter-name "MQRankSum-12.5" \
                     -filter "ReadPosRankSum < -8.0" --filter-name "ReadPosRankSum-8" """,
         threads: 20
-        log: "/root/docker/logs/VariantFiltration_SNP.log"
+        log: "logs/VariantFiltration_SNP.log"
         benchmark:
-            "/root/docker/benchmarks/VariantFiltration_SNP.benchmark.txt"
+            "benchmarks/VariantFiltration_SNP.benchmark.txt"
         shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'VariantFiltration_SNP starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g VariantFiltration -V {input} {params.flt} -O {output} "
@@ -328,18 +328,18 @@ rule VariantFiltration_SNP:                            #Hard filtering snps as p
 
 rule VariantFiltration_INDELS:                                   #Hard filtering indels as per the GATK pipeline with their suggested parameters
         input:
-            "/root/docker/indels/all.vcf"
+            "indels/all.vcf"
         output:
-            "/root/docker/indels_filtered/all.indels_filtered.vcf"
+            "indels_filtered/all.indels_filtered.vcf"
         params:
             flt= """-filter "QD < 2.0" --filter-name "QD2" \
                     -filter "QUAL < 30.0" --filter-name "QUAL30" \
                     -filter "FS > 200.0" --filter-name "FS200" \
                     -filter "ReadPosRankSum < -20.0" --filter-name "ReadPosRankSum-20" """,
         threads: 20
-        log: "/root/docker/logs/VariantFiltration_indels.log"
+        log: "logs/VariantFiltration_indels.log"
         benchmark:
-            "/root/docker/benchmarks/VariantFiltration_INDELS.benchmark.txt"
+            "benchmarks/VariantFiltration_INDELS.benchmark.txt"
         shell:
             "echo $(date '+%d/%m/%y    %H:%M:%S'): 'VariantFiltration_INDELS starts' >> {log} && echo '-' >> {log} &&"                    # Add start time to log file
             "gatk --java-options -Xmx13g VariantFiltration -V {input} {params.flt} -O {output} "
