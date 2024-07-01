@@ -1,10 +1,11 @@
+
 echo $(date): 'Initializing Please Wait -- This might take time depending on your connection speed.'
 
 mkdir data/
 
 cd data/ 
 
-./download.sh
+bash download.sh
 
 mkdir samples
 
