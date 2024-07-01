@@ -7,6 +7,8 @@ cd data/
 
 bash download.sh
 
+cd ../
+
 mkdir samples
 
 echo 'Copy/Move the samples in fastq.gz format to the samples directory found on the local machine'

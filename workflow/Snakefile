@@ -1,4 +1,6 @@
-#### Made by IITM Genome India Team
+#### Made by IITM Team
+#Ayam Gupta
+#Venkatesh K
 
 SAMPLES, = glob_wildcards("samples/{sample}.fastq.gz")  #Defining global Wild cards
 
