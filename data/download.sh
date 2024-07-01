@@ -1,7 +1,7 @@
 echo 'Downloading required resources for the pipeline'
 echo 'There are optional resources available in this script download by modifying the script'
 
-cd /root/docker/data/
+
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.dict
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.fasta
 wget https://storage.googleapis.com/genomics-public-data/resources/broad/hg38/v0/Homo_sapiens_assembly38.fasta.64.alt
