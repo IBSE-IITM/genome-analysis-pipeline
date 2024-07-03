@@ -22,6 +22,7 @@ The same tools can be installed using the following command from the root direct
 
 
 **Steps to run the workflow**
+
 Execute the initialisation script to prepare the output directory.
 
       $ sh init.sh
