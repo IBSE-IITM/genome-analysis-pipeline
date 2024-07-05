@@ -17,22 +17,22 @@ picard -Xmx13g SortSam I={input} O={output} VALIDATION_STRINGENCY=LENIENT SORT_O
 picard -Xmx13g MarkDuplicates I={input} O={output.bam} METRICS_FILE={output.met}
 
 #BaseRecalibrator
-gatk --java-options -Xmx13g BaseRecalibrator -I {input.bam} -R /root/Project/data/Homo_sapiens_assembly38.fasta --known-sites /root/Project/data/00-All.vcf.gz -O {output}
+gatk --java-options -Xmx13g BaseRecalibrator -I {input.bam} -R ~/genome-analysis-pipeline/data/Homo_sapiens_assembly38.fasta --known-sites ~/genome-analysis-pipeline/data/00-All.vcf.gz -O {output}
 
 #ApplyBQSR
-gatk --java-options -Xmx13g ApplyBQSR -I {input.bam} -R /root/Project/data/Homo_sapiens_assembly38.fasta --bqsr-recal-file {input.recal} -O {output}
+gatk --java-options -Xmx13g ApplyBQSR -I {input.bam} -R ~/genome-analysis-pipeline/data/Homo_sapiens_assembly38.fasta --bqsr-recal-file {input.recal} -O {output}
 
 #HaplotypeCaller
-gatk --java-options -Xmx13g HaplotypeCaller -I {input.gatk} -R /root/Project/data/Homo_sapiens_assembly38.fasta -ERC GVCF -O {output}
+gatk --java-options -Xmx13g HaplotypeCaller -I {input.gatk} -R ~/genome-analysis-pipeline/data/Homo_sapiens_assembly38.fasta -ERC GVCF -O {output}
 
 #gatk_CombineGVCFs
-ls gvcf/*.gz >gvcfs.list && gatk --java-options -Xmx13g CombineGVCFs -R /root/Project/data/Homo_sapiens_assembly38.fasta --variant gvcfs.list -O {output.gvcf}
+ls gvcf/*.gz >gvcfs.list && gatk --java-options -Xmx13g CombineGVCFs -R ~/genome-analysis-pipeline/data/Homo_sapiens_assembly38.fasta --variant gvcfs.list -O {output.gvcf}
 
 #GenotypeGVCFs
-gatk --java-options -Xmx13g GenotypeGVCFs -R /root/Project/data/Homo_sapiens_assembly38.fasta -V /root/docker/gvcf_combined/all.g.vcf.gz -O {output}
+gatk --java-options -Xmx13g GenotypeGVCFs -R ~/genome-analysis-pipeline/data/Homo_sapiens_assembly38.fasta -V ~/genome-analysis-pipeline/docker/gvcf_combined/all.g.vcf.gz -O {output}
 
 #LeftAlignAndTrimVariants
-gatk --java-options -Xmx13g LeftAlignAndTrimVariants -R /root/Project/data/Homo_sapiens_assembly38.fasta -V {input.vcf} -O {output} --split-multi-allelics
+gatk --java-options -Xmx13g LeftAlignAndTrimVariants -R ~/genome-analysis-pipeline/data/Homo_sapiens_assembly38.fasta -V {input.vcf} -O {output} --split-multi-allelics
 
 #SelectVariants_SNPS
 gatk --java-options -Xmx13g SelectVariants -V {input} -select-type SNP -O {output}
