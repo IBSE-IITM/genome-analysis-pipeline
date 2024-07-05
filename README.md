@@ -18,6 +18,7 @@ Pipeline to map reads and call variants in human whole genome sequences w.r.t. G
 *OR*
 
 The same tools can be installed using the following command from the root directory of this project
+
       $ conda env create -f wgs_pipeline.yaml
 
 
